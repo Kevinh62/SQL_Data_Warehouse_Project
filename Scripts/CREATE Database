@@ -1,5 +1,6 @@
-
--- Database: DataWareHouse
+-------------------------------------------------------
+-- CREATING DATABASE FOR PROJECT
+-------------------------------------------------------
 
 DROP DATABASE IF EXISTS "DataWareHouse";
 
