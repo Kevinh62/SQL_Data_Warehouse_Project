@@ -16,6 +16,6 @@ CREATE DATABASE "DataWareHouse"
 COMMENT ON DATABASE "DataWareHouse"
     IS 'first data warehouse project ';
 
------------------------------------------------------
+
 -- copy and paste above DDL script to any database 
-------------------------------------------------------
+--- Tbh it much easier to to go on PGADMIN 4, left clicking CREATE under "databases" and then making your schamas, tables, or other objects under the newly created database
