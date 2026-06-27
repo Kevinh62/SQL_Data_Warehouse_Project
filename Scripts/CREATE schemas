@@ -1,1 +1,12 @@
+----------------------------------------------------------------
+CREATING SCHEMAS AFTER CREATING DATABASE
+----------------------------------------------------------------
 
+-- After creating database in the CREATE database folder 
+-- Postgres does not allow other DDL scripts to be executed on same script as CREATE <database> script
+
+CREATE SCHEMA bronze;
+
+CREATE SCHEMA silver;
+
+CREATE SCHEMA gold;
