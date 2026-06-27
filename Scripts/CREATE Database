@@ -1,1 +1,20 @@
 
+-- Database: DataWareHouse
+
+DROP DATABASE IF EXISTS "DataWareHouse";
+
+CREATE DATABASE "DataWareHouse"
+    WITH
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LOCALE_PROVIDER = 'libc'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1
+    IS_TEMPLATE = False;
+
+COMMENT ON DATABASE "DataWareHouse"
+    IS 'first data warehouse project ';
+
+-----------------------------------------------------
+-- copy and paste above DDL script to any database 
+------------------------------------------------------
