@@ -242,8 +242,12 @@ DECLARE
                 SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
         END;    
     proc_end := clock_timestamp();
+        RAISE NOTICE '=============================================';
         RAISE NOTICE 'Bronze Layer loaded successfully';
+        RAISE NOTICE '=============================================';
+         RAISE NOTICE '---------------------------------------------';
         RAISE NOTICE 'Total time to load Bronze layer: %',
             proc_end - proc_start;
+         RAISE NOTICE '---------------------------------------------';
     END;
 $$;
