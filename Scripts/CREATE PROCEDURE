@@ -1,5 +1,6 @@
 -- Stored procedure for the bronze layer 
--- This is pretty optimized. only thing to make it better would be to use a helper procedure and a ETL log, but for the amount of tables used, this is fine
+-- pretty optimized. only thing to make it better would be to use a helper procedure and a ETL log, but for the amount of tables used, this is fine
+-- **only thing to mention is to add your own file path in lines 11 and 13 for where your source files are stored**
 
 CREATE OR REPLACE PROCEDURE bronze.load_bronze()
 LANGUAGE plpgsql
