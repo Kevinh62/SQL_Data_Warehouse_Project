@@ -1,0 +1,248 @@
+-- Stored procedure for the bronze layer 
+-- This is pretty optimized. only thing to make it better would be to use a helper procedure and a ETL log, but for the amount of tables used, this is fine
+
+CREATE OR REPLACE PROCEDURE bronze.load_bronze()
+LANGUAGE plpgsql
+AS $$
+DECLARE 
+
+  crm_path CONSTANT TEXT := 
+            'C:\Users\kevin\OneDrive\Documents\SQL DATAWAREHOUSE PROJECT\datasets\source_crm\';
+  erp_path CONSTANT TEXT := 
+            'C:\Users\kevin\OneDrive\Documents\SQL DATAWAREHOUSE PROJECT\datasets\source_erp\';
+  
+  sd_message TEXT;
+  sd_detail  TEXT;
+  sd_context TEXT;
+  sd_hint TEXT;
+
+  table_rows INTEGER;
+  
+  l_start_time TIMESTAMPTZ;
+  l_end_time TIMESTAMPTZ;
+  
+  proc_start TIMESTAMPTZ; 
+  proc_end TIMESTAMPTZ;
+    BEGIN
+        proc_start := clock_timestamp();
+            RAISE NOTICE '===============================';
+            RAISE NOTICE 'loading Bronze Layer...';
+            RAISE NOTICE '===============================';
+        
+            RAISE NOTICE '-------------------------------';
+            RAISE NOTICE 'Loading CRM tables...';
+            RAISE NOTICE '-------------------------------';
+-- bronze.crm_cust_info table         
+        BEGIN
+            RAISE NOTICE '>> Truncating table: bronze.crm_cust_info.';
+            TRUNCATE TABLE bronze.crm_cust_info;
+      
+            RAISE NOTICE '>> Copying Data Into: bronze.crm_cust_info...';
+            l_start_time := clock_timestamp();
+            EXECUTE format(
+                'COPY bronze.crm_cust_info
+                FROM %L
+                WITH (FORMAT csv, HEADER true)',
+                    crm_path || 'cust_info.csv'
+                );
+            l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '>> bronze.crm_cust_info complete. Loaded % rows in: %',
+                table_rows, l_end_time - l_start_time;               
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'bronze.crm_cust_info failed.';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'Table: bronze.crm_cust_info
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+-- bronze.crm_prd_info table 
+        BEGIN
+            RAISE NOTICE '>>Truncating table: bronze.crm_prd_info';
+            TRUNCATE TABLE bronze.crm_prd_info;
+            
+            RAISE NOTICE '>>Copying Data Into: bronze.crm_prd_info';
+            l_start_time := clock_timestamp();
+            EXECUTE format(
+                'COPY bronze.crm_prd_info
+                FROM %L
+                WITH (FORMAT csv, HEADER true)',
+                    crm_path || 'prd_info.csv'
+                );
+             l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '>> bronze.crm_prd_info complete.loaded % rows in: %',
+                table_rows, l_end_time - l_start_time; 
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'bronze.crm_prd_info failed.';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'Table: bronze.crm_prd_info
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+-- bronze.crm_sales_details table 
+        BEGIN
+            RAISE NOTICE '>>Truncating table: bronze.crm_sales_details';
+            TRUNCATE TABLE bronze.crm_sales_details;
+            
+            RAISE NOTICE '>>Copying Data Into: bronze.crm_sales_details';
+            l_start_time := clock_timestamp();
+            EXECUTE format(
+                'COPY bronze.crm_sales_details
+                FROM %L
+                WITH (FORMAT csv, HEADER true)',
+                    crm_path || 'sales_details.csv'
+                );
+             l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '>> bronze.crm_sales_details complete. Loaded % rows in: %',
+                table_rows, l_end_time - l_start_time; 
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'bronze.crm_sales_details failed.';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'Table: bronze.crm_sales_details
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+
+            RAISE NOTICE '-------------------------------';
+            RAISE NOTICE 'Loading ERP Tables';
+            RAISE NOTICE '-------------------------------';
+-- bronze.erp_cust_az12 table 
+        BEGIN
+            RAISE NOTICE '>>Truncating table: bronze.erp_cust_az12';
+            TRUNCATE TABLE bronze.erp_cust_az12;
+            
+            RAISE NOTICE '>>Copying Data Into: bronze.erp_cust_az12';
+            l_start_time := clock_timestamp();
+            EXECUTE format(
+                'COPY bronze.erp_cust_az12
+                FROM %L
+                WITH (FORMAT csv, HEADER true)',
+                    erp_path || 'cust_az12.csv'
+                );
+             l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '>> bronze.erp_cust_az12 complete. loaded % rows in: %',
+                table_rows, l_end_time - l_start_time; 
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'bronze.erp_cust_az12 failed.';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'Table: bronze.erp_cust_az12
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+-- bronze.erp_loc_a101 table 
+        BEGIN
+            RAISE NOTICE '>>Truncating table: bronze.erp_loc_a101';
+            TRUNCATE TABLE bronze.erp_loc_a101;
+            
+            RAISE NOTICE '>>Copying Data Into: bronze.erp_loc_a101';
+            l_start_time := clock_timestamp();
+            EXECUTE format(
+                'COPY bronze.erp_loc_a101
+                FROM %L
+                WITH (FORMAT csv, HEADER true)',
+                    erp_path || 'loc_a101.csv'
+                );
+            l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '>> bronze.erp_loc_a101 complete. Loaded % rows in: %',
+                table_rows, l_end_time - l_start_time; 
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'bronze.erp_loc_a101 failed.';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'Table: bronze.erp_loc_a101
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+-- bronze.erp_px_cat_g1v2 table 
+        BEGIN
+            RAISE NOTICE '>>Truncating table: bronze.erp_px_cat_g1v2';
+            TRUNCATE TABLE bronze.erp_px_cat_g1v2;
+            
+            RAISE NOTICE '>>Copying Data Into: bronze.erp_px_cat_g1v2';
+            l_start_time := clock_timestamp();
+            EXECUTE format(
+                'COPY bronze.erp_px_cat_g1v2
+                FROM %L
+                WITH (FORMAT csv, HEADER true)',
+                    erp_path || 'px_cat_g1v2.csv'
+                ); 
+            l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '>> bronze.erp_px_cat_g1v2 complete. Loaded % rows in: %',
+                table_rows, l_end_time - l_start_time; 
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'bronze.erp_px_cat_g1v2 failed.';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'Table: bronze.erp_px_cat_g1v2
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;    
+    proc_end := clock_timestamp();
+        RAISE NOTICE 'Bronze Layer loaded successfully';
+        RAISE NOTICE 'Total time to load Bronze layer: %',
+            proc_end - proc_start;
+    END;
+$$;
