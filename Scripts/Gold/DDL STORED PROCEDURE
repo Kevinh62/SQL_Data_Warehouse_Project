@@ -1,0 +1,191 @@
+-----------------------------------------------------------------------------------------------
+--- GOLD LAYER PROCEDURE FOR CREATING DIM AND FACT TABLES IN STAR SCHEMA
+-----------------------------------------------------------------------------------------------
+--- VERY SIMILIAR TO OTHER LAYER SP. REMEMEBR TO TRY TO ADD MORE AND PERSONALIZE IT MORE. I ADDED MORE RAISE NOTICES TO CREATE SEPERATION
+
+CREATE OR REPLACE PROCEDURE gold.load_gold()
+LANGUAGE plpgsql
+AS $$
+DECLARE 
+  sd_message TEXT;
+  sd_detail  TEXT;
+  sd_context TEXT;
+  sd_hint TEXT;
+
+  table_rows INTEGER;
+  
+  l_start_time TIMESTAMPTZ;
+  l_end_time TIMESTAMPTZ;
+  
+  proc_start TIMESTAMPTZ; 
+  proc_end TIMESTAMPTZ;
+    BEGIN
+        proc_start := clock_timestamp();
+            RAISE NOTICE '===============================';
+            RAISE NOTICE 'loading Gold Layer...';
+            RAISE NOTICE '===============================';
+        
+            RAISE NOTICE '-------------------------------';
+            RAISE NOTICE 'Loading Dimension Views...';
+            RAISE NOTICE '-------------------------------';
+-- gold.dim_customer table         
+        BEGIN
+            RAISE NOTICE '>> Dropping View: gold.dim_customer.';
+            DROP VIEW gold.dim_customer;
+      
+            RAISE NOTICE '>> Creating new View: gold.dim_customer...';
+            l_start_time := clock_timestamp();
+            CREATE VIEW gold.dim_customers AS
+                SELECT
+                    ROW_NUMBER() OVER(ORDER BY ci.cst_id) AS customer_key,
+                    ci.cst_id AS customer_id,
+                    ci.cst_key AS customer_number,
+                    ci.cst_firstname AS first_name,
+                    ci.cst_lastname AS last_name,
+                    la.cntry AS country,
+                    ci.cst_marital_status AS marital_status,
+                    CASE
+                        WHEN ci.cst_gndr != 'N/A' THEN ci.cst_gndr --CRM is MASTER SOURCE
+                        ELSE COALESCE(ca.gen, 'N/A')
+                    END AS gender,
+                    ca.bdate AS birthdate,
+                    ci.cst_create_date AS create_date
+                FROM silver.crm_cust_info AS ci
+                LEFT JOIN silver.erp_cust_az12 AS ca
+                    ON ci.cst_key = ca.cid
+                LEFT JOIN silver.erp_loc_a101 AS la
+                    ON ci.cst_key = la.cid;
+            l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '--------------------------------------------------------';
+            RAISE NOTICE '>> gold.dim_customer complete. Loaded % rows in: %',
+                table_rows, l_end_time - l_start_time;   
+            RAISE NOTICE '--------------------------------------------------------';     
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'gold.dim_customer failed.';
+            RAISE NOTICE '=========================================================';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'View: gold.dim_customer
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+-- gold.dim_products table 
+        BEGIN
+            RAISE NOTICE '>> Dropping View: gold.dim_products.';
+            DROP VIEW gold.dim_products;
+      
+            RAISE NOTICE '>> Creating new View: gold.dim_products...';
+            l_start_time := clock_timestamp();
+            CREATE VIEW gold.dim_products AS
+                SELECT
+                    ROW_NUMBER() OVER(ORDER BY ph.prd_start_dt, ph.prd_id) AS product_key,
+                    ph.prd_id AS product_id,
+                    ph.prd_key AS product_number,
+                    ph.prd_nm AS product_name,
+                    ph.cat_id AS category_id,
+                    px.cat AS category,
+                    px.subcat AS subcategory,
+                    px.maintenance,
+                    ph.prd_cost AS cost,
+                    ph.prd_line AS product_line,
+                    ph.prd_start_dt AS start_date           
+                FROM silver.crm_prd_info AS ph
+                LEFT JOIN silver.erp_px_cat_g1v2 AS px
+                    ON ph.cat_id = px.id
+                WHERE ph.prd_end_dt IS NULL; -- KEEPS ONLY CURRENT DATA
+             l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '--------------------------------------------------------';
+            RAISE NOTICE '>> gold.dim_products complete.loaded % rows in: %',
+                table_rows, l_end_time - l_start_time; 
+            RAISE NOTICE '--------------------------------------------------------';
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'gold.dim_products failed.';
+            RAISE NOTICE '=========================================================';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'View: gold.dim_products
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+
+         RAISE NOTICE '-------------------------------';
+            RAISE NOTICE 'Loading Fact Views';
+            RAISE NOTICE '-------------------------------';
+-- Gold.fact_sales table 
+        BEGIN
+            RAISE NOTICE '>> Dropping View: gold.fact_sales.';
+            DROP VIEW Gold.fact_sales;
+      
+            RAISE NOTICE '>> Creating new View: gold.fact_sales...';
+            l_start_time := clock_timestamp();
+            CREATE VIEW gold.fact_sales AS
+                SELECT
+                    sd.sls_ord_num AS order_number,
+                    pr.product_key,
+                    cu.customer_key,
+                    sd.sls_order_dt AS order_date,
+                    sd.sls_ship_dt AS shipping_date,
+                    sd.sls_due_dt AS due_date,
+                    sd.sls_sales AS sales_amount,
+                    sd.sls_quantity AS quantity,
+                    sd.sls_price AS price
+                FROM silver.crm_sales_details AS sd
+                LEFT JOIN gold.dim_products AS pr
+                    ON sd.sls_prd_key = pr.product_number
+                LEFT JOIN gold.dim_customers AS cu
+                    ON sd.sls_cust_id = cu.customer_id;
+             l_end_time := clock_timestamp();
+            GET DIAGNOSTICS table_rows = ROW_COUNT;
+            RAISE NOTICE '--------------------------------------------------------';
+            RAISE NOTICE '>> gold.fact_sales complete. Loaded % rows in: %',
+                table_rows, l_end_time - l_start_time; 
+            RAISE NOTICE '--------------------------------------------------------';
+        EXCEPTION 
+            WHEN OTHERS THEN
+            RAISE NOTICE 'gold.fact_sales failed.';
+            RAISE NOTICE '=========================================================';
+            GET STACKED DIAGNOSTICS 
+                sd_message = MESSAGE_TEXT,
+                sd_detail = PG_EXCEPTION_DETAIL,
+                sd_context = PG_EXCEPTION_CONTEXT,
+                sd_hint = PG_EXCEPTION_HINT;
+            RAISE EXCEPTION 
+                'View: gold.fact_sales
+                 SQLSTATE: %
+                 Message: %
+                 Detail: %
+                 error_line: %
+                 error_hint: %',
+                SQLSTATE, sd_message, sd_detail, sd_context, sd_hint;
+        END;
+        
+    proc_end := clock_timestamp();
+        RAISE NOTICE '=============================================';
+        RAISE NOTICE 'GOLD Layer loaded successfully';
+        RAISE NOTICE '=============================================';
+         RAISE NOTICE '---------------------------------------------';
+        RAISE NOTICE 'Total time to load GOLD layer: %',
+            proc_end - proc_start;
+         RAISE NOTICE '---------------------------------------------';
+    END;
+$$;
