@@ -1,0 +1,73 @@
+CREATE VIEW gold.product_report AS 
+
+WITH base_query AS (
+    SELECT
+	    f.order_number,
+        f.order_date,
+		f.customer_key,
+        f.sales_amount,
+        f.quantity,
+        p.product_key,
+        p.product_name,
+        p.category,
+        p.subcategory,
+        p.cost
+    FROM gold.fact_sales f
+    LEFT JOIN gold.dim_products p
+        ON f.product_key = p.product_key
+    WHERE order_date IS NOT NULL  
+),
+
+
+   product_aggregations AS(
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    cost,
+    (EXTRACT(YEAR FROM AGE(MAX(order_date)::DATE, MIN(order_date)::DATE))*12) + EXTRACT(MONTH FROM AGE(MAX(order_date)::DATE, MIN(order_date)::DATE))AS order_history,
+    MAX(order_date) AS recent_order_date,
+    COUNT(DISTINCT order_number) AS total_orders,
+	COUNT(DISTINCT customer_key) AS total_customers,
+    SUM(sales_amount) AS total_sales,
+    SUM(quantity) AS total_quantity,
+	ROUND(AVG(sales_amount/quantity),2) AS avg_selling_price
+FROM base_query
+GROUP BY
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    cost
+)
+
+
+SELECT 
+	product_key,
+	product_name,
+	category,
+	subcategory,
+	cost,
+	recent_order_date,
+	(((CURRENT_DATE - recent_order_date))/365)*12 AS last_customer_activity,
+	CASE
+		WHEN total_sales > 50000 THEN 'High'
+		WHEN total_sales >= 10000 THEN 'Mid'
+		ELSE 'Low'
+	END AS product_performance,
+	order_history,
+	total_orders,
+	total_sales,
+	total_quantity,
+	total_customers,
+	avg_selling_price,
+	CASE 
+		WHEN total_orders = 0 THEN 0
+		ELSE total_sales / total_orders
+	END AS avg_order_revenue,
+	CASE
+		WHEN order_history = 0 THEN total_sales
+		ELSE ROUND(total_sales / order_history, 2)
+	END AS avg_monthly_revenue
+FROM product_aggregations 
