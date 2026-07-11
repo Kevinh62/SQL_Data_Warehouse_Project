@@ -10,6 +10,7 @@ My goal is to pivot into data engineering. First step is to get really at SQL, s
  - **Data Architecture**: Data Warehouse Using Medallion Architecture of simple Bronze, Silver, Gold layer.
  - **ETL Pipelines**: Extracting, transforming, and loading data from external files into pgadmin4.
  - **Data Modeling**: Developed a snowflake schema optimized for analytical queries.
+ - **Debugging**: Exception/handling and quality checks to make debugging smoother 
  - **Visualizations**: Drew data diagrams that visulized data flow, architecture, and entity relationships
  - **Analytics**: Creating SQL-based reports and dashboards for actionable insights.
 
