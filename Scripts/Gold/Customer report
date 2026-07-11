@@ -1,0 +1,70 @@
+CREATE VIEW gold.customer_report AS 
+
+WITH customer_essential_fields AS (
+SELECT
+    f.order_number, 
+    f.product_key,
+    f.order_date,
+    f.sales_amount,
+    f.quantity,
+    c.customer_key,
+    c.customer_number, 
+    CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+    (CURRENT_DATE - birthdate)/365 AS age
+FROM gold.fact_sales AS f 
+LEFT JOIN gold.dim_customers AS c
+ON f.customer_key = c.customer_key
+WHERE order_date IS NOT NULL
+)
+
+, customer_aggregations AS (
+SELECT 
+    customer_key,
+    customer_number,
+    customer_name,
+    age,
+    COUNT(DISTINCT order_number) AS total_orders,
+    SUM(sales_amount) AS total_sales,
+    SUM(DISTINCT product_key) AS total_products,
+    MAX(order_date) AS recent_order_date,
+    (EXTRACT(YEAR FROM AGE(MAX(order_date)::DATE, MIN(order_date)::DATE))*12) + EXTRACT(MONTH FROM AGE(MAX(order_date)::DATE, MIN(order_date)::DATE)) AS order_history
+FROM customer_essential_fields
+GROUP BY 
+    customer_key,
+    customer_number,
+    customer_name,
+    age
+)
+
+SELECT 
+    customer_key,
+    customer_number,
+    customer_name,
+    age,
+    CASE
+        WHEN age < 20 THEN 'teenager'
+        WHEN age BETWEEN 20 AND 24 THEN 'young adult'
+        WHEN age BETWEEN 25 AND 39 THEN 'adult'
+        WHEN age BETWEEN 40 AND 59 THEN 'middle-aged' 
+        ELSE 'senior'
+    END AS age_group,
+    CASE
+        WHEN order_history >= 12 AND total_sales > 5000 THEN 'VIP'
+        WHEN order_history >= 12 AND total_sales <= 5000 THEN 'regular'
+        ELSE 'NEW'
+    END AS customer_group,    
+    recent_order_date,
+    (((CURRENT_DATE - recent_order_date))/365)*12 AS last_customer_activity,
+    order_history,
+    total_orders,
+    total_sales,
+    total_products,
+    CASE 
+        WHEN total_orders = 0 THEN 0 
+        ELSE total_sales/total_orders 
+    END AS average_order_value,
+    CASE 
+        WHEN order_history = 0 THEN total_sales
+        ELSE ROUND(total_sales/order_history,2)
+    END AS average_monthly_spend    
+FROM customer_aggregations 
