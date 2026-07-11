@@ -1,0 +1,130 @@
+======================================================================================================
+-- Queries used for analyzing Gold layer data 
+======================================================================================================
+-- Time series analysis, grouping data, 
+------------------------------------------------------------------------------------------------------
+
+-- Time series: Sales Metric 
+
+SELECT
+    EXTRACT(YEAR FROM order_date) AS order_year,
+    EXTRACT(MONTH FROM order_date) AS order_month,
+    SUM(sales_amount) AS total_sales,
+    COUNT(DISTINCT customer_key) AS total_customers,
+    SUM(quantity) AS total_quantity
+FROM gold.fact_sales
+WHERE order_date IS NOT NULL
+GROUP BY order_year , order_month
+ORDER BY order_year DESC, order_month;
+
+=======================================================================================================
+
+-- Time Series: Running Totals and Averages
+
+SELECT
+    order_date,
+    total_sales,
+    SUM(total_sales) OVER(ORDER BY order_date) AS running_total_sales,
+    ROUND(AVG(avg_price) OVER(ORDER BY order_date), 2) AS moving_avg_price
+FROM
+(
+    SELECT
+        EXTRACT(YEAR FROM order_date) AS order_date,
+        SUM(sales_amount)AS total_sales,
+        AVG(price) AS avg_price
+    FROM gold.fact_sales
+    WHERE order_date IS NOT NULL
+    GROUP BY  EXTRACT(YEAR FROM order_date)
+    ORDER BY EXTRACT(YEAR FROM order_date)
+)t;
+
+======================================================================================================
+
+-- Performance indicators 
+
+WITH yearly_sales AS (
+    SELECT
+        p.product_name,
+        SUM(f.sales_amount) AS current_sales,
+        DATE_TRUNC('YEAR',f.order_date)::DATE AS order_year
+    FROM gold.fact_sales f
+    LEFT JOIN gold.dim_products p
+        ON f.product_key = p.product_key
+    WHERE f.order_date IS NOT NULL
+    GROUP BY p.product_name, order_year
+)
+SELECT
+    product_name,
+    order_year,
+    current_sales,
+    LAG(current_sales) OVER(PARTITION BY product_name ORDER BY order_year) AS previous_month_sales,
+    current_sales - LAG(current_sales) OVER(PARTITION BY product_name ORDER BY order_year) AS sales_variance,
+    CASE
+        WHEN current_sales - LAG(current_sales) OVER(PARTITION BY product_name ORDER BY order_year) > 0 THEN 'sales increase'
+        WHEN current_sales - LAG(current_sales) OVER(PARTITION BY product_name ORDER BY order_year) < 0 THEN 'sales decrease'
+        ELSE 'no change'
+    END AS variance_change,
+    ROUND(AVG(current_sales) OVER(PARTITION BY product_name),2) AS avg_sales_per_product,
+    current_sales - ROUND(AVG(current_sales) OVER(PARTITION BY product_name),2) AS average_variance,
+    CASE
+        WHEN current_sales - ROUND(AVG(current_sales) OVER(PARTITION BY product_name),2) > 0 THEN 'above average'
+        WHEN current_sales - ROUND(AVG(current_sales) OVER(PARTITION BY product_name),2) < 0 THEN 'below average'
+        ELSE 'average'
+END AS average_change
+FROM yearly_sales
+ORDER BY product_name, order_year;
+
+====================================================================================================
+
+-- Sales Percentage Analysis
+
+WITH category_sales AS (
+    SELECT
+        p.category,
+        SUM(f.sales_amount) AS total_sales
+    FROM gold.fact_sales f
+    LEFT JOIN gold.dim_products p
+        ON p.product_key = f.product_key
+    GROUP BY p.category
+)
+SELECT
+    category,
+    total_sales,
+    SUM(total_sales) OVER () AS overall_sales,
+    ROUND((total_sales/SUM(total_sales) OVER ()) * 100,2) AS percentage_of_total
+FROM category_sales
+ORDER BY total_sales DESC;
+
+====================================================================================================
+
+-- Data Segmentation to group customers 
+
+WITH customer_rank AS (
+    SELECT
+        c.customer_key,
+        MIN(order_Date) AS first_order,
+        MAX(order_date) AS last_order,
+        (EXTRACT(YEAR FROM AGE(MAX(order_date)::date, MIN(order_Date)::date)) * 12) + EXTRACT(MONTH FROM AGE(MAX(order_date)::date, MIN(order_Date)::date)) AS order_history,
+        SUM(f.sales_amount) AS total_sales
+    FROM gold.fact_sales f
+    LEFT JOIN gold.dim_customers c
+        ON f.customer_key = c.customer_key
+    GROUP BY c.customer_key
+)
+SELECT
+    customer_group,
+    COUNT(customer_key) AS total_customers
+FROM
+( 
+    SELECT
+        customer_key,
+        Case
+            WHEN order_history >= 12 AND total_sales > 5000 THEN 'VIP'
+            WHEN order_history >= 12 AND total_sales <= 5000 THEN 'regular'
+            ELSE 'NEW'
+        END AS customer_group
+    FROM customer_rank
+)
+GROUP BY customer_group
+ORDER BY total_customers;
+
