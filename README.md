@@ -5,11 +5,11 @@ Developing my first data warehouse using PostgresSQL for application of SQL skil
 
 ## Project
 
- **Data Architecture**: Data Warehouse Using Medallion Architecture of simple Bronze, Silver, Gold layer.
- **ETL Pipelines**: Extracting, transforming, and loading data from external files into pgadmin4.
- **Data Modeling**: Developed a snowflake schema optimized for analytical queries.
- **Visualizations**: Drew data diagrams that visulized data flow, architecture, and entity relationships
- **Analytics**: Creating SQL-based reports and dashboards for actionable insights.
+ -**Data Architecture**: Data Warehouse Using Medallion Architecture of simple Bronze, Silver, Gold layer.
+ -**ETL Pipelines**: Extracting, transforming, and loading data from external files into pgadmin4.
+ -**Data Modeling**: Developed a snowflake schema optimized for analytical queries.
+ -**Visualizations**: Drew data diagrams that visulized data flow, architecture, and entity relationships
+- **Analytics**: Creating SQL-based reports and dashboards for actionable insights.
 
 -------
 
@@ -17,7 +17,7 @@ Developing my first data warehouse using PostgresSQL for application of SQL skil
 
 Link to my notion notes:
 
-contains much more detailed information about the project and step-by-step on how the warehouse was developed. Including query breakdown and thought processes
+contains much more detailed information about the project and step-by-step on how the warehouse was developed. Including query breakdown and thought process
 https://app.notion.com/p/Data-Warehouse-Project-388d3706fbb880b1a4e5c392d94c74b9?source=copy_link
 
 -------
