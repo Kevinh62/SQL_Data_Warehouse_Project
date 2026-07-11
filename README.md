@@ -1,9 +1,11 @@
 # SQL_Data_Warehouse_Project
 Developing my first data warehouse using PostgresSQL for application of SQL skills and relevant analysis! 
 
+My goal is to pivot into data engineering. First step is to get really at SQL, so this is my first actual project that is putting hours of learning the fundamentals into something I can showcase. I could not find the opportunity to include indexes because there was not that much row values to affect optimization. A wise person once said, "who cares about storage!"
+
 ------
 
-## Project
+## Project Breakdown 
 
  - **Data Architecture**: Data Warehouse Using Medallion Architecture of simple Bronze, Silver, Gold layer.
  - **ETL Pipelines**: Extracting, transforming, and loading data from external files into pgadmin4.
