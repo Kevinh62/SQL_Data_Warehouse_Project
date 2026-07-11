@@ -1,5 +1,11 @@
-CREATE VIEW gold.product_report AS 
+===========================================================================================
+--- Final query that creates view of a report for products 
+===========================================================================================
 
+CREATE VIEW gold.product_report AS 
+------------------------------------------------------------------------------------
+-- first CTE that pulls all columns that we will need for our report 
+------------------------------------------------------------------------------------
 WITH base_query AS (
     SELECT
 	    f.order_number,
@@ -17,8 +23,9 @@ WITH base_query AS (
         ON f.product_key = p.product_key
     WHERE order_date IS NOT NULL  
 ),
-
-
+--------------------------------------------------------------------------------------------
+-- Secondary CTE that comes from first CTE for aggregations to create new technical columns 
+---------------------------------------------------------------------------------------------
    product_aggregations AS(
 SELECT
     product_key,
@@ -42,7 +49,9 @@ GROUP BY
     cost
 )
 
-
+--------------------------------------------------------------------------------------------
+-- last query that uses second CTE for final aggregations 
+---------------------------------------------------------------------------------------------
 SELECT 
 	product_key,
 	product_name,
